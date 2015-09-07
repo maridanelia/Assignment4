@@ -12,8 +12,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.omg.CORBA.INITIALIZE;
-
 public class Bank {
 
 	/**
@@ -21,7 +19,7 @@ public class Bank {
 	 * contains basic information of single account: ID and balance.
 	 * 
 	 */
-	private class Account {
+	private static class Account {
 		final int ID;
 		long balance;
 
@@ -37,7 +35,7 @@ public class Bank {
 	 * Class contains information of individual transactions.
 	 * Immutable
 	 */
-	private class Transaction {
+	private static class Transaction {
 		final int from;
 		final int to;
 		final long amount;
@@ -48,7 +46,7 @@ public class Bank {
 		 *            : account ID of class from which amount is being
 		 *            transferred
 		 * @param to
-		 *            : account ID of class to which amount i being transferred
+		 *            : account ID of class to which amount is being transferred
 		 * @param amount
 		 *            being transferred
 		 */
@@ -101,6 +99,8 @@ public class Bank {
 
 	}
 
+	// My understanding is that all transfers are performed in sequential manner, even if
+	// they concern different accounts. We wouldn't need workers and queues if this was permitted.
 	private synchronized void transfer(Transaction t) {
 		Account from = accounts.get(t.from);
 		Account to = accounts.get(t.to);
@@ -116,11 +116,11 @@ public class Bank {
 		try {
 			numberOfWorkers = Integer.parseInt(args[1]);
 		} catch (NumberFormatException e) {
-			System.out.println("Incorect integer value");
+			System.out.println("Incorrect integer value");
 			return;
 		}
 		
-		
+		// There is a nice thing called try-with-resource that you can use here
 		try {
 			BufferedReader in = new BufferedReader(new FileReader(filename));
 			Bank bank = new Bank();
@@ -145,6 +145,9 @@ public class Bank {
 
 	}
 
+	// I don't like this design of calling several initializing methods. If they are called in wrong
+	// order, you will face concurrency problems (if worker threads are created before account map is filled)
+	// I'd redesign it in a way where you can't possibly invoke methods in the wrong order. 
 	private void launchWorkers(int numWorkers) {
 		latch = new CountDownLatch(numWorkers);
 		for (int i = 0; i < numWorkers; i++) {
@@ -183,6 +186,7 @@ public class Bank {
 	
 	private  void printAccounts(){
 		for(int i = 0; i<NUMBER_OF_ACCOUNTS; i++){
+			// why not give Account a toString method instead?
 			System.out.println("account: "+i+" balance: "+accounts.get(i).balance);
 		}
 	}
