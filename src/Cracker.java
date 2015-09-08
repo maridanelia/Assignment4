@@ -12,6 +12,7 @@ public class Cracker {
 	private boolean debugMode = false;
 	private static final String HASHING_ALGO = "SHA";
 	private volatile int passLength;
+	// why not pass this array into worker threads instead of sharing it as volatile?
 	private volatile byte [] hashToCrack;
 
 	/*
@@ -66,6 +67,8 @@ public class Cracker {
 
 	}
 
+	// I would have a dedicated class which would, given byte[] str, return the hash and
+	// have MessageDigest as its internal member. The instance would be created in each worker.
 	private static byte[] generateHash(byte[] str, MessageDigest md) {
 		md.update(str);
 		return md.digest();
@@ -86,6 +89,7 @@ public class Cracker {
 		for (int i = 0; i < l; i += bucketSize) {
 			CrackerThread thr = new CrackerThread(i, i + bucketSize - 1);
 			if (oddBuckets > 0) {
+				// wtf??
 				thr.rangeEnd++;
 				i++;
 				oddBuckets--;
@@ -99,6 +103,7 @@ public class Cracker {
 	}
 
 	private class CrackerThread extends Thread {
+		// why are these not final?
 		private int rangeStart;
 		private int rangeEnd;
 		private byte [] solution;
@@ -108,6 +113,7 @@ public class Cracker {
 			super();
 			this.rangeStart = rangeStart;
 			this.rangeEnd = rangeEnd;
+			// why not pass passLength in as parameter, thus avoiding that strange volatile member of the outer class?
 			solution = new byte[passLength];
 			try {
 				this.md = MessageDigest.getInstance(HASHING_ALGO);
